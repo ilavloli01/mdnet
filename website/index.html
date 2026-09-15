@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mdnet · AI-friendly API docs for .NET</title>
+<meta name="description" content="mdnet generates signature-first Markdown API docs for .NET libraries from source or NuGet packages, renders them to a static site, and syncs published docs for your dependencies.">
+<meta property="og:title" content="mdnet · AI-friendly API docs for .NET">
+<meta property="og:description" content="Signature-first Markdown API docs for .NET libraries that AI agents can read directly.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23512bd4'/><text x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='white' text-anchor='middle'>md</text></svg>">
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --bg-alt: #f3f1ed;
+    --surface: #ffffff;
+    --text: #1b1a1f;
+    --muted: #5f5c66;
+    --border: #e4e1db;
+    --accent: #512bd4;
+    --accent-soft: #ece6fd;
+    --code-bg: #17151d;
+    --code-text: #e8e6ee;
+    --code-muted: #8b8697;
+    --code-kw: #b69cff;
+    --code-type: #6fd3c1;
+    --code-str: #f2c57c;
+    --code-tag: #ff9d7a;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111016;
+      --bg-alt: #17151e;
+      --surface: #1c1a24;
+      --text: #ecebf1;
+      --muted: #a29fae;
+      --border: #2c2936;
+      --accent: #a58bff;
+      --accent-soft: #2a2143;
+      --code-bg: #0b0a0f;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: var(--mono); }
+  :not(pre) > code {
+    font-size: .88em;
+    background: var(--accent-soft);
+    padding: .1em .35em;
+    border-radius: 4px;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; }
+
+  /* Header */
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  header.top .wrap { display: flex; align-items: center; gap: 24px; height: 58px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); font-size: 17px; }
+  .logo:hover { text-decoration: none; }
+  .logo-mark {
+    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
+    background: #512bd4; color: #fff; font: 700 12px var(--mono);
+  }
+  nav.links { display: flex; gap: 20px; margin-left: auto; font-size: 14.5px; }
+  nav.links a { color: var(--muted); }
+  nav.links a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 640px) { nav.links .hide-sm { display: none; } }
+
+  /* Hero */
+  .hero { padding-block: 84px 64px; text-align: center; }
+  .eyebrow {
+    display: inline-block; font: 600 12.5px var(--mono); letter-spacing: .02em;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 4px 10px; border-radius: 999px; margin-bottom: 22px;
+  }
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 58px); line-height: 1.08; letter-spacing: -.025em;
+    margin: 0 auto 20px; max-width: 16ch; text-wrap: balance;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.lede { font-size: clamp(17px, 2.2vw, 19.5px); color: var(--muted); max-width: 60ch; margin: 0 auto 34px; text-wrap: pretty; }
+
+  .cmd {
+    display: inline-flex; align-items: center; gap: 12px; max-width: 100%;
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: 10px; padding: 12px 12px 12px 18px;
+    font: 15px var(--mono); text-align: left;
+  }
+  .cmd .prompt { color: var(--code-muted); user-select: none; }
+  .cmd code { overflow-x: auto; white-space: nowrap; }
+  .copy {
+    flex: none; cursor: pointer; border: 1px solid #3a3645; background: #24212d; color: var(--code-text);
+    font: 12.5px var(--sans); padding: 5px 10px; border-radius: 6px;
+  }
+  .copy:hover { background: #2f2b3a; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px;
+    font-weight: 600; font-size: 15px; border: 1px solid var(--border); color: var(--text); background: var(--surface);
+  }
+  .btn:hover { text-decoration: none; border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.primary { color: #120e1f; } }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn svg { width: 17px; height: 17px; }
+
+  /* Sections */
+  section { padding-block: 72px; }
+  section.alt { background: var(--bg-alt); border-block: 1px solid var(--border); }
+  .section-head { max-width: 640px; margin-bottom: 40px; }
+  .section-head h2 { font-size: clamp(26px, 3.6vw, 34px); letter-spacing: -.018em; line-height: 1.2; margin: 0 0 12px; }
+  .section-head p { color: var(--muted); margin: 0; font-size: 17px; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;
+    display: flex; flex-direction: column;
+  }
+  .step .num { font: 600 13px var(--mono); color: var(--accent); margin-bottom: 8px; }
+  .step h3 { margin: 0 0 8px; font-size: 19px; }
+  .step p { margin: 0 0 18px; color: var(--muted); font-size: 15px; flex: 1; }
+  .step pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text); border-radius: 8px;
+    padding: 12px 14px; font-size: 13px; overflow-x: auto;
+  }
+
+  /* Showcase */
+  .showcase { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .showcase { grid-template-columns: minmax(0, 1fr); } }
+  .window { background: var(--code-bg); border-radius: 12px; overflow: hidden; border: 1px solid #25222e; box-shadow: 0 18px 40px -24px rgb(20 10 50 / .45); }
+  .window-bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid #25222e; }
+  .window-bar i { width: 10px; height: 10px; border-radius: 50%; background: #3a3645; }
+  .window-bar span { margin-left: 8px; font: 12.5px var(--mono); color: var(--code-muted); }
+  .window pre { margin: 0; padding: 16px 18px; color: var(--code-text); font-size: 13px; line-height: 1.65; overflow-x: auto; }
+  .c-m { color: var(--code-muted); }
+  .c-k { color: var(--code-kw); }
+  .c-t { color: var(--code-type); }
+  .c-s { color: var(--code-str); }
+  .c-g { color: var(--code-tag); }
+  .c-h { color: #fff; font-weight: 700; }
+  .c-ok { color: #7fd88f; }
+  .showcase-note { color: var(--muted); font-size: 14.5px; margin: 14px 2px 0; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .feature { background: var(--surface); padding: 24px 26px; }
+  .feature h3 { margin: 0 0 6px; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  .feature h3 .ico { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); flex: none; }
+  .feature h3 .ico svg { width: 16px; height: 16px; }
+  .feature p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  /* Install tabs */
+  .tabs { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .tablist { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .tablist button {
+    cursor: pointer; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    padding: 14px 20px; font: 600 14.5px var(--sans); color: var(--muted);
+  }
+  .tablist button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  .tabpanel { padding: 22px 24px 26px; }
+  .tabpanel p { margin: 0 0 14px; color: var(--muted); font-size: 15px; }
+  .code-block { position: relative; }
+  .code-block pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text); border-radius: 8px;
+    padding: 14px 16px; font-size: 14px; overflow-x: auto; line-height: 1.7;
+  }
+  .code-block .copy { position: absolute; top: 9px; right: 9px; }
+  .req { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 22px; font-size: 14.5px; color: var(--muted); }
+  .req b { color: var(--text); font-weight: 600; }
+
+  /* Commands table */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 14px 20px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; background: var(--bg-alt); }
+  td:first-child { white-space: nowrap; }
+  td code.cmdname { font-weight: 600; }
+  td .ex { display: block; margin-top: 4px; font: 13px var(--mono); color: var(--muted); white-space: nowrap; }
+
+  /* Agents */
+  .agents { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: center; }
+  @media (max-width: 860px) { .agents { grid-template-columns: minmax(0, 1fr); } }
+  .agents ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+  .agents li { padding-left: 28px; position: relative; color: var(--muted); }
+  .agents li b { color: var(--text); }
+  .agents li::before {
+    content: ""; position: absolute; left: 4px; top: .55em; width: 10px; height: 10px; border-radius: 3px; background: var(--accent);
+  }
+
+  /* CTA + footer */
+  .cta { text-align: center; }
+  .cta h2 { font-size: clamp(26px, 3.6vw, 34px); margin: 0 0 12px; letter-spacing: -.018em; }
+  .cta p { color: var(--muted); margin: 0 0 28px; }
+  footer { border-top: 1px solid var(--border); padding-block: 28px; font-size: 14px; color: var(--muted); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  footer .spacer { flex: 1; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#"><span class="logo-mark">md</span>mdnet</a>
+    <nav class="links">
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#install">Install</a>
+      <a class="hide-sm" href="#agents">Agents</a>
+      <a href="demo/">Demo</a>
+      <a href="https://github.com/Hookyns/mdnet#readme">Docs</a>
+      <a href="https://github.com/Hookyns/mdnet">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow">.NET tool · Roslyn · Markdoc</span>
+    <h1>API docs for .NET that <em>AI agents</em> can read</h1>
+    <p class="lede">mdnet turns C# libraries and NuGet packages into signature-first Markdown, renders it as a static site, and syncs published docs for your dependencies, so your agent reads real APIs instead of guessing them.</p>
+
+    <div class="cmd">
+      <span class="prompt">$</span>
+      <code id="hero-cmd">dnx mdnet --yes -- generate MySolution.slnx -o docs</code>
+      <button class="copy" data-copy="#hero-cmd">Copy</button>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn" href="demo/">See a generated site</a>
+      <a class="btn" href="https://github.com/Hookyns/mdnet">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+
+  <section id="how" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Generate, render, sync</h2>
+        <p>One tool covers the whole loop: write docs for your own libraries, publish them anywhere, and pull docs for the packages you depend on.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">01 · generate</div>
+          <h3>Markdown from source or packages</h3>
+          <p>Roslyn reads your solution, or the NuGet packages it references, and writes one page per type: C# signatures followed by their XML doc comments.</p>
+          <pre>mdnet generate MySolution.slnx -o docs
+mdnet generate . --packages "Acme.*"</pre>
+        </div>
+        <div class="step">
+          <div class="num">02 · render</div>
+          <h3>A static HTML site</h3>
+          <p>Markdoc, React and Shiki turn the Markdown into a fast, searchable site. Each page keeps its <code>.md</code> source, and the site serves <code>llms.txt</code>.</p>
+          <pre>mdnet render docs/md -o docs/html</pre>
+        </div>
+        <div class="step">
+          <div class="num">03 · sync</div>
+          <h3>Docs for your dependencies</h3>
+          <p>Point <code>mdnet.sources.json</code> at HTTP, git or local folders. Every referenced package that matches gets its docs, checked against SHA-256 hashes.</p>
+          <pre>mdnet sync MySolution.slnx --prune</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Signatures up front, docs right below</h2>
+        <p>Each member is shown the way it appears in C#, followed by its docs. Agents open <code>index.md</code>, then only the type pages they need.</p>
+      </div>
+      <div class="showcase">
+        <div>
+          <div class="window">
+            <div class="window-bar"><i></i><i></i><i></i><span>docs/md</span></div>
+<pre><span class="c-h">index.md</span>                  <span class="c-m"># start here</span>
+<span class="c-h">Sample.Lib/</span>
+  index.md                <span class="c-m"># README, namespaces, types</span>
+  mdnet.json              <span class="c-m"># id, version, hashes</span>
+  <span class="c-h">Core.Data/</span>
+    DbContext.md
+    Money.md
+  <span class="c-h">Core.Data.Repositories/</span>
+    IRepository-1.md
+    EntityFrameworkRepository-1.md
+    <span class="c-m">…</span></pre>
+          </div>
+          <p class="showcase-note">One folder per package, one per namespace, one file per type. <code>Repository&lt;T&gt;</code> becomes <code>Repository-1.md</code>.</p>
+        </div>
+        <div class="window">
+          <div class="window-bar"><i></i><i></i><i></i><span>Core.Data.Repositories/EntityFrameworkRepository-1.md</span></div>
+<pre><span class="c-g">{% member id="addasync" %}</span>
+<span class="c-m">```csharp</span>
+<span class="c-k">public async</span> <span class="c-t">Task</span>&lt;<span class="c-t">TEntity</span>&gt; AddAsync(
+    <span class="c-t">TEntity</span> entity,
+    <span class="c-t">CancellationToken</span> cancellationToken = <span class="c-k">default</span>)
+<span class="c-m">```</span>
+
+Asynchronously adds a new entity to the underlying
+database context.
+
+* <span class="c-h">**entity**</span>: The entity instance to be inserted.
+* <span class="c-h">**cancellationToken**</span>: A token to observe for
+  cancellation requests.
+
+<span class="c-h">**Returns**</span>: The inserted entity with any
+database-generated values applied.
+
+&gt; <span class="c-h">**Remarks**</span>: It does not automatically call
+&gt; [<span class="c-s">`SaveChangesAsync`</span>](../Core.Data/DbContext.md#savechangesasync).
+<span class="c-g">{% /member %}</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Built for how .NET libraries are really written</h2>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></span>Accurate C# signatures</h3>
+          <p>Generics, constraints, records, attributes, default values and modifiers, straight from Roslyn. Choose <code>public</code>, <code>protected</code> or <code>internal</code> visibility.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>Full XML doc support</h3>
+          <p><code>summary</code>, <code>remarks</code>, <code>param</code>, <code>example</code>, <code>see</code> and more, including <code>inheritdoc</code> with <code>cref</code> and automatic inheritance for overrides.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></span>Source or NuGet packages</h3>
+          <p>Document the projects in a solution, or any restored package reference, transitive ones included, using the shipped assemblies and XML files.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>READMEs and metadata</h3>
+          <p>Project and namespace READMEs are embedded, and package metadata such as version, description, license and target frameworks comes from MSBuild.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>Verified downloads</h3>
+          <p>Every published folder has an <code>mdnet.json</code> manifest. Downloads fetch only changed files and check each one against its hash.</p>
+        </div>
+        <div class="feature">
+          <h3><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>Nothing extra to install</h3>
+          <p>Run it with <code>dnx</code> on .NET 10. The HTML renderer ships inside the tool as one bundled file and runs on <code>bun</code> or <code>node</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Install or just run it</h2>
+        <p>mdnet is a regular .NET tool. With the .NET 10 SDK, <code>dnx</code> runs it without installing anything first.</p>
+      </div>
+
+      <div class="tabs">
+        <div class="tablist" role="tablist">
+          <button role="tab" aria-selected="true" aria-controls="tab-dnx" id="t-dnx">dnx (no install)</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-global" id="t-global">Global tool</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-local" id="t-local">Local tool</button>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tab-dnx" aria-labelledby="t-dnx">
+          <p>Recommended for CI and AI agents. <code>--yes</code> skips the download prompt, and everything after <code>--</code> goes to mdnet.</p>
+          <div class="code-block">
+            <pre id="c-dnx">dnx mdnet --yes -- generate MySolution.slnx -o docs</pre>
+            <button class="copy" data-copy="#c-dnx">Copy</button>
+          </div>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tab-global" aria-labelledby="t-global" hidden>
+          <p>Install once and use <code>mdnet</code> anywhere.</p>
+          <div class="code-block">
+            <pre id="c-global">dotnet tool install -g mdnet
+mdnet generate MySolution.slnx -o docs</pre>
+            <button class="copy" data-copy="#c-global">Copy</button>
+          </div>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tab-local" aria-labelledby="t-local" hidden>
+          <p>Pin the version in your repository. After a fresh clone, run <code>dotnet tool restore</code>.</p>
+          <div class="code-block">
+            <pre id="c-local">dotnet new tool-manifest
+dotnet tool install mdnet
+dotnet mdnet generate MySolution.slnx -o docs</pre>
+            <button class="copy" data-copy="#c-local">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="req">
+        <span><b>.NET 10 SDK</b> always</span>
+        <span><b>bun</b> or <b>node</b> for HTML output</span>
+        <span><b>git</b> for git sources</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Commands</h2>
+        <p>Every command accepts <code>--verbose</code>, <code>--quiet</code> and <code>--help</code>. See the <a href="https://github.com/Hookyns/mdnet#commands">full reference</a> for all options.</p>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code class="cmdname">generate</code></td>
+              <td>Markdown and HTML docs from a solution, project or directory. Add <code>--packages</code> to document referenced NuGet packages instead.
+                <span class="ex">mdnet generate . -f md --visibility public</span></td>
+            </tr>
+            <tr>
+              <td><code class="cmdname">render</code></td>
+              <td>A static HTML site from any Markdown docs folder, generated or downloaded.
+                <span class="ex">mdnet render .mdnet/docs -o .mdnet/site</span></td>
+            </tr>
+            <tr>
+              <td><code class="cmdname">download</code></td>
+              <td>Published docs from an HTTP URL, a git repository or a local folder, once.
+                <span class="ex">mdnet download https://github.com/org/acme-docs --ref v1.2.0</span></td>
+            </tr>
+            <tr>
+              <td><code class="cmdname">sync</code></td>
+              <td>Docs for every referenced package, as configured in <code>mdnet.sources.json</code>. Safe to run repeatedly.
+                <span class="ex">mdnet sync MySolution.slnx --prune</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="agents">
+    <div class="wrap agents">
+      <div>
+        <div class="section-head" style="margin-bottom:24px">
+          <h2>Give your agent the real API</h2>
+          <p>Add a few lines to <code>AGENTS.md</code>, <code>CLAUDE.md</code> or <code>copilot-instructions.md</code>.</p>
+        </div>
+        <ul>
+          <li><b>Small entry point.</b> <code>index.md</code> lists packages, namespaces and types, one line each.</li>
+          <li><b>Read only what's needed.</b> Type pages are short and self-contained, so they cost few tokens.</li>
+          <li><b>Stays current.</b> Run <code>sync</code> in CI or a setup script to match the versions you reference.</li>
+        </ul>
+      </div>
+      <div class="window">
+        <div class="window-bar"><i></i><i></i><i></i><span>AGENTS.md</span></div>
+<pre><span class="c-h">## API documentation</span>
+- Our libraries: <span class="c-s">`docs/md/index.md`</span>
+- Dependencies: <span class="c-s">`.mdnet/docs/index.md`</span>
+  (refresh with <span class="c-s">`dnx mdnet --yes -- sync`</span>)
+
+Read <span class="c-s">`index.md`</span> first, then open only the
+type pages you need. Each type page lists
+C# signatures with their docs.</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt cta">
+    <div class="wrap">
+      <h2>Try it on your solution</h2>
+      <p>No install needed. Markdown only takes seconds and doesn't need a JavaScript runtime.</p>
+      <div class="cmd">
+        <span class="prompt">$</span>
+        <code id="cta-cmd">dnx mdnet --yes -- generate . -f md -o docs</code>
+        <button class="copy" data-copy="#cta-cmd">Copy</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b>mdnet</b> · AGPL-3.0</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/Hookyns/mdnet">GitHub</a>
+    <a href="https://www.nuget.org/packages/mdnet">NuGet</a>
+    <a href="https://github.com/Hookyns/mdnet/blob/main/CONTRIBUTING.md">Contributing</a>
+    <a href="https://github.com/Hookyns/mdnet/blob/main/LICENSE">License</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll(".copy").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const text = document.querySelector(btn.dataset.copy).textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Copied";
+      } catch {
+        btn.textContent = "Press Ctrl+C";
+        getSelection().selectAllChildren(document.querySelector(btn.dataset.copy));
+      }
+      setTimeout(() => (btn.textContent = "Copy"), 1600);
+    });
+  });
+
+  const tabs = document.querySelectorAll('[role="tab"]');
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => {
+        const selected = t === tab;
+        t.setAttribute("aria-selected", selected);
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
+      });
+    });
+  });
+</script>
+</body>
+</html>
