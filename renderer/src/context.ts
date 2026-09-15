@@ -14,7 +14,11 @@ export interface NavNamespace {
 export interface SitePackage {
   id: string;
   version?: string;
+  /** First segment of the id; packages are grouped by it on the index. */
+  group: string;
   description?: string;
+  /** Frontmatter of the package index.md (authors, license, repository, frameworks, types, …). */
+  meta: Record<string, string | undefined>;
   namespaces: NavNamespace[];
   /** Simple type name → page path within this package. */
   symbols: Map<string, string>;
@@ -76,6 +80,17 @@ function splitHash(href: string): [string, string | undefined] {
 
 function toHtml(path: string): string {
   return path.endsWith(".md") ? path.slice(0, -3) + ".html" : path;
+}
+
+/** Packages grouped by id prefix, in site order. */
+export function groupPackages(packages: SitePackage[]): { name: string; packages: SitePackage[] }[] {
+  const groups = new Map<string, SitePackage[]>();
+  for (const pkg of packages) groups.set(pkg.group, [...(groups.get(pkg.group) ?? []), pkg]);
+  return [...groups].map(([name, members]) => ({ name, packages: members }));
+}
+
+export function frameworksOf(pkg: SitePackage): string[] {
+  return (pkg.meta.frameworks ?? "").split(",").map((f) => f.trim()).filter(Boolean);
 }
 
 export function slug(text: string): string {

@@ -24,8 +24,9 @@ mdnet generate src/MyLib -f md
 Output:
 
 ```
-docs/md/index.md                         entry point for agents
-docs/md/MyLib/index.md                   namespaces and types, one line each
+docs/md/index.md                         entry point for agents: packages grouped by id prefix, version, description
+docs/md/MyLib/index.md                   frontmatter (version, description, authors, license, repository, frameworks, types)
+                                         + namespaces and types, one line each
 docs/md/MyLib/MyLib.Data/Repository-1.md one page per type
 docs/md/MyLib/mdnet.json                 manifest (id, version, file hashes)
 docs/html/…                              static site (+ .md next to every page, llms.txt)

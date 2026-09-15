@@ -1,6 +1,6 @@
 import { Children, isValidElement, type ReactNode } from "react";
 import { Code, type Wrap } from "./highlight";
-import { rewriteHref } from "./context";
+import { frameworksOf, groupPackages, pageHref, rewriteHref, slug, usePage, type SitePackage } from "./context";
 
 type WithChildren<T = object> = T & { children?: ReactNode };
 
@@ -55,9 +55,142 @@ export function Header({ title, badges, declaration, children }: WithChildren<{ 
           </div>
         )}
         {hasBody && <div className="space-y-5 max-w-2xl [&>p:first-child]:text-[16px] [&>p:first-child]:text-zinc-700">{body}</div>}
+        <PackageFacts />
       </header>
       <div className="h-px w-full bg-zinc-100 mb-14" />
     </>
+  );
+}
+
+const chip = "px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 text-[11px] font-mono";
+
+function ExternalLink({ href, children }: WithChildren<{ href: string }>) {
+  return (
+    <a href={href} className="text-zinc-600 hover:text-zinc-900 underline decoration-zinc-300 underline-offset-2">
+      {children}
+      <span className="text-zinc-400"> ↗</span>
+    </a>
+  );
+}
+
+function plural(n: number, noun: string) {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
+}
+
+/** Package properties under the package index title: frameworks, authors, license, links, tags. */
+function PackageFacts() {
+  const { pkg, path } = usePage();
+  if (!pkg || path !== `${pkg.id}/index.md`) return null;
+  const { meta } = pkg;
+  const frameworks = frameworksOf(pkg);
+  const types = Number(meta.types ?? 0);
+  const facts: ReactNode[] = [
+    meta.authors && <span>{meta.authors}</span>,
+    meta.company && <span>{meta.company}</span>,
+    meta.license && <span className="font-mono text-[12px]">{meta.license}</span>,
+    meta.copyright && <span>{meta.copyright}</span>,
+    types > 0 && <span>{plural(types, "type")}</span>,
+    meta.repository && <ExternalLink href={meta.repository}>Repository</ExternalLink>,
+    meta.project && meta.project !== meta.repository && <ExternalLink href={meta.project}>Project</ExternalLink>,
+  ].filter(Boolean);
+  const tags = (meta.tags ?? "").split(/,\s*/).filter(Boolean);
+  if (frameworks.length === 0 && facts.length === 0 && tags.length === 0) return null;
+
+  return (
+    <div className="mt-6 space-y-3">
+      {meta.title && <p className="text-[15px] text-zinc-500">{meta.title}</p>}
+      {facts.length > 0 && (
+        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-zinc-500">
+          {facts.map((fact, i) => (
+            <span key={i} className="flex items-center gap-2.5">
+              {i > 0 && <span className="text-zinc-300">·</span>}
+              {fact}
+            </span>
+          ))}
+        </p>
+      )}
+      {(frameworks.length > 0 || tags.length > 0) && (
+        <p className="flex flex-wrap gap-1.5">
+          {frameworks.map((f) => (
+            <span key={f} className="px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 ring-1 ring-teal-700/10 text-[11px] font-mono">
+              {f}
+            </span>
+          ))}
+          {tags.map((t) => (
+            <span key={t} className={chip}>
+              #{t}
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The docs root page: every package as a card, grouped by id prefix. Rendered from site data, not from index.md. */
+export function SiteIndex() {
+  const { site, path } = usePage();
+  const groups = groupPackages(site.packages);
+  const types = site.packages.reduce((sum, p) => sum + Number(p.meta.types ?? 0), 0);
+
+  return (
+    <>
+      <header className="mb-12">
+        <h1 className="text-3xl md:text-4xl font-heading font-semibold text-zinc-900 tracking-tight mb-3">API documentation</h1>
+        <p className="text-[15px] text-zinc-500">
+          {plural(site.packages.length, "package")}
+          {types > 0 && ` · ${plural(types, "type")}`}
+        </p>
+      </header>
+      {site.packages.length === 0 && <p className="text-zinc-500">No packages.</p>}
+      {groups.map((group) => (
+        <section key={group.name} id={slug(group.name)} className="mb-12 last:mb-0 scroll-mt-24">
+          {groups.length > 1 && (
+            <h2 className="mb-4 text-[11px] font-mono font-medium uppercase tracking-wider text-zinc-400">{group.name}</h2>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {group.packages.map((pkg) => (
+              <PackageCard key={pkg.id} pkg={pkg} href={pageHref(path, `${pkg.id}/index.md`)} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
+  );
+}
+
+/** Lets long dotted ids wrap between segments instead of mid-word. */
+function breakAtDots(id: string): ReactNode[] {
+  return id.split(".").flatMap((part, i) => (i === 0 ? [part] : [".", <wbr key={i} />, part]));
+}
+
+function PackageCard({ pkg, href }: { pkg: SitePackage; href: string }) {
+  const frameworks = frameworksOf(pkg);
+  const types = Number(pkg.meta.types ?? 0);
+  const prefix = pkg.id.startsWith(`${pkg.group}.`) ? `${pkg.group}.` : "";
+
+  return (
+    <a
+      href={href}
+      className="group flex flex-col rounded-xl bg-white p-5 ring-1 ring-zinc-200/60 shadow-sm transition hover:ring-zinc-300 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <span className="font-mono text-[14px] font-semibold text-zinc-900 group-hover:text-teal-700 [overflow-wrap:anywhere]">
+          {prefix && <span className="font-medium text-zinc-400">{prefix}</span>}
+          {breakAtDots(pkg.id.slice(prefix.length))}
+        </span>
+        {pkg.version && <span className={`${chip} shrink-0`}>{pkg.version}</span>}
+      </div>
+      <p className="flex-1 mb-4 text-[13.5px] leading-relaxed line-clamp-3 text-zinc-500">{pkg.description}</p>
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono text-zinc-400">
+        {frameworks.map((f) => (
+          <span key={f} className="px-1.5 py-0.5 rounded bg-zinc-50 ring-1 ring-zinc-200/70">
+            {f}
+          </span>
+        ))}
+        {types > 0 && <span className="ml-auto">{plural(types, "type")}</span>}
+      </div>
+    </a>
   );
 }
 

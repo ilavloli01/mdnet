@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import css from "../build/site.css" with { type: "text" };
-import { components } from "./components";
+import { components, SiteIndex } from "./components";
 import { PageContext, type PageInfo } from "./context";
 import { Layout } from "./layout";
 import { config } from "./schema";
@@ -45,7 +45,8 @@ function main(args: string[]): number {
     const declaration = ast.children.find((c) => c.type === "fence");
     const namespace = /^namespace\s+([\w.]+);/m.exec(String(declaration?.attributes.content ?? ""))?.[1];
 
-    const content = Markdoc.renderers.react(Markdoc.transform(ast, config), React, { components });
+    // The root index is rendered from site data (package metadata); its Markdown stays a plain list for agents.
+    const content = path === "index.md" ? <SiteIndex /> : Markdoc.renderers.react(Markdoc.transform(ast, config), React, { components });
     const html =
       "<!doctype html>" +
       renderToStaticMarkup(

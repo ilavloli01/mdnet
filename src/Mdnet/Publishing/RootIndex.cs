@@ -1,13 +1,21 @@
+using System.Globalization;
 using System.Text;
 
 namespace Mdnet.Publishing;
 
 /// <summary>
 /// <c>index.md</c> at the docs root: the entry point for agents, listing every package folder that has a
-/// manifest (generated or downloaded).
+/// manifest (generated or downloaded), grouped by the first segment of the package id.
 /// </summary>
 public static class RootIndex
 {
+    private sealed record Entry(string Folder, Manifest Manifest, IReadOnlyDictionary<string, string> Fields)
+    {
+        public string Group => Manifest.Id.Split('.')[0];
+
+        public int Types => int.TryParse(Fields.GetValueOrDefault(PackageFields.Types), CultureInfo.InvariantCulture, out var n) ? n : 0;
+    }
+
     public static void Write(string root)
     {
         if (!Directory.Exists(root))
@@ -15,8 +23,7 @@ public static class RootIndex
             return;
         }
 
-        var sb = new StringBuilder("# API documentation\n\n");
-        var any = false;
+        var entries = new List<Entry>();
         foreach (var dir in Directory.EnumerateDirectories(root).Order(StringComparer.OrdinalIgnoreCase))
         {
             Manifest? manifest;
@@ -29,52 +36,59 @@ public static class RootIndex
                 continue;
             }
 
-            if (manifest is null)
+            if (manifest is not null)
             {
-                continue;
+                var index = Path.Combine(dir, "index.md");
+                var fields = File.Exists(index) ? Frontmatter.Parse(File.ReadAllText(index)) : new Dictionary<string, string>();
+                entries.Add(new Entry(Path.GetFileName(dir), manifest, fields));
             }
-
-            any = true;
-            var folder = Path.GetFileName(dir);
-            sb.Append("* [").Append(manifest.Id);
-            if (manifest.Version is not null)
-            {
-                sb.Append(' ').Append(manifest.Version);
-            }
-
-            sb.Append("](").Append(folder).Append("/index.md)");
-            if (Description(Path.Combine(dir, "index.md")) is { } description)
-            {
-                sb.Append(": ").Append(description);
-            }
-
-            sb.Append('\n');
         }
 
-        if (!any)
+        var sb = new StringBuilder("# API documentation\n\n");
+        if (entries.Count == 0)
         {
             sb.Append("No packages.\n");
         }
-
-        File.WriteAllText(Path.Combine(root, "index.md"), sb.ToString());
-    }
-
-    /// <summary>The <c>&gt; description</c> line that follows the package heading.</summary>
-    private static string? Description(string indexPath)
-    {
-        if (!File.Exists(indexPath))
+        else
         {
-            return null;
-        }
-
-        foreach (var line in File.ReadLines(indexPath).Take(5))
-        {
-            if (line.StartsWith("> ", StringComparison.Ordinal))
+            var types = entries.Sum(e => e.Types);
+            sb.Append(Count(entries.Count, "package"));
+            if (types > 0)
             {
-                return line[2..].Trim();
+                sb.Append(" · ").Append(Count(types, "type"));
+            }
+
+            sb.Append("\n\n");
+            var groups = entries.GroupBy(e => e.Group, StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var group in groups)
+            {
+                if (groups.Count > 1)
+                {
+                    sb.Append("## ").Append(group.Key).Append("\n\n");
+                }
+
+                foreach (var entry in group)
+                {
+                    sb.Append("* [").Append(entry.Manifest.Id).Append("](").Append(entry.Folder).Append("/index.md)");
+                    if ((entry.Manifest.Version ?? entry.Fields.GetValueOrDefault(PackageFields.Version)) is { } version)
+                    {
+                        sb.Append(" `").Append(version).Append('`');
+                    }
+
+                    if (entry.Fields.GetValueOrDefault(PackageFields.Description) is { Length: > 0 } description)
+                    {
+                        sb.Append(": ").Append(description);
+                    }
+
+                    sb.Append('\n');
+                }
+
+                sb.Append('\n');
             }
         }
 
-        return null;
+        File.WriteAllText(Path.Combine(root, "index.md"), sb.ToString().TrimEnd() + "\n");
     }
+
+    private static string Count(int n, string noun) => $"{n.ToString(CultureInfo.InvariantCulture)} {noun}{(n == 1 ? "" : "s")}";
 }

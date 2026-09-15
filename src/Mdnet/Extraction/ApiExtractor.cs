@@ -26,7 +26,7 @@ public sealed class ApiExtractor(Compilation compilation, Visibility visibility)
 
     private readonly XmlDocParser _parser = new(compilation);
 
-    public DocPackage Extract(IAssemblySymbol assembly, string id, string? version, string? description)
+    public DocPackage Extract(IAssemblySymbol assembly, string id, string? version, PackageMetadata metadata)
     {
         var types = new List<INamedTypeSymbol>();
         CollectTypes(assembly.GlobalNamespace, types);
@@ -43,7 +43,7 @@ public sealed class ApiExtractor(Compilation compilation, Visibility visibility)
             .OrderBy(g => g.Key, StringComparer.Ordinal)
             .Select(g => new NamespaceDoc(g.Key, g.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList()))
             .ToList();
-        return new DocPackage(id, version, description, namespaces);
+        return new DocPackage(id, version, metadata, namespaces);
 
         static int Depth(INamedTypeSymbol type)
         {

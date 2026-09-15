@@ -1,7 +1,25 @@
 namespace Mdnet.Model;
 
 /// <summary>One documented unit: a project (source mode) or a NuGet package (package mode).</summary>
-public sealed record DocPackage(string Id, string? Version, string? Description, IReadOnlyList<NamespaceDoc> Namespaces);
+public sealed record DocPackage(string Id, string? Version, PackageMetadata Metadata, IReadOnlyList<NamespaceDoc> Namespaces);
+
+/// <summary>Package properties from the evaluated project (source mode) or the nuspec (package mode).</summary>
+/// <param name="Frameworks">Target framework monikers, e.g. <c>net10.0</c>.</param>
+public sealed record PackageMetadata(
+    string? Title = null,
+    string? Description = null,
+    string? Authors = null,
+    string? Company = null,
+    string? Copyright = null,
+    string? Tags = null,
+    string? License = null,
+    string? ProjectUrl = null,
+    string? RepositoryUrl = null,
+    IReadOnlyList<string>? Frameworks = null
+)
+{
+    public static readonly PackageMetadata Empty = new();
+}
 
 public sealed record NamespaceDoc(string Name, IReadOnlyList<TypeDoc> Types);
 

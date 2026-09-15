@@ -34,7 +34,50 @@ public class PublishingTests
         await Assert.That(manifest!.Version).IsEqualTo("1.1.0");
         await Assert.That(File.ReadAllText(Path.Combine(root, "Pkg", "Ns", "Type.md"))).IsEqualTo("v2");
         await Assert.That(File.Exists(Path.Combine(root, "Pkg", "Ns", "Old.md"))).IsFalse();
-        await Assert.That(File.ReadAllText(Path.Combine(root, "index.md"))).Contains("[Pkg 1.1.0](Pkg/index.md)");
+        await Assert.That(File.ReadAllText(Path.Combine(root, "index.md"))).Contains("* [Pkg](Pkg/index.md) `1.1.0`");
+    }
+
+    [Test]
+    public async Task Root_index_groups_packages_and_reads_frontmatter()
+    {
+        var root = TestPaths.TempDirectory("root-index");
+        void Package(string id, string frontmatter) =>
+            DocsFolder.Replace(Path.Combine(root, id), new Dictionary<string, string> { ["index.md"] = frontmatter + $"# {id}\n" }, new Manifest(id, "2.0.0"));
+
+        Package("Acme.Locking", Frontmatter.Write([new("description", "Locks: distributed #1"), new("types", "3")]));
+        Package("Acme.Workflows", Frontmatter.Write([new("types", "1")]));
+        Package("Contoso", "");
+        RootIndex.Write(root);
+
+        await Assert.That(File.ReadAllText(Path.Combine(root, "index.md"))).IsEqualTo(
+            """
+            # API documentation
+
+            3 packages · 4 types
+
+            ## Acme
+
+            * [Acme.Locking](Acme.Locking/index.md) `2.0.0`: Locks: distributed #1
+            * [Acme.Workflows](Acme.Workflows/index.md) `2.0.0`
+
+            ## Contoso
+
+            * [Contoso](Contoso/index.md) `2.0.0`
+
+            """.ReplaceLineEndings("\n")
+        );
+    }
+
+    [Test]
+    public async Task Frontmatter_quotes_only_ambiguous_values()
+    {
+        var text = Frontmatter.Write([new("a", "plain value, net10.0"), new("b", "key: value"), new("c", "- dash"), new("d", " "), new("e", "\"quoted\" start")]);
+        var parsed = Frontmatter.Parse(text + "# Title\n");
+
+        await Assert.That(text).IsEqualTo("---\na: plain value, net10.0\nb: \"key: value\"\nc: \"- dash\"\ne: \"\\\"quoted\\\" start\"\n---\n");
+        await Assert.That(parsed["b"]).IsEqualTo("key: value");
+        await Assert.That(parsed["e"]).IsEqualTo("\"quoted\" start");
+        await Assert.That(parsed.ContainsKey("d")).IsFalse();
     }
 
     [Test]

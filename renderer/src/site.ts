@@ -20,16 +20,24 @@ export function loadSite(root: string): Site {
     if (!existsSync(manifestPath)) continue;
 
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { id: string; version?: string };
-    const pkg: SitePackage = { id: manifest.id, version: manifest.version, namespaces: [], symbols: new Map() };
+    const pkg: SitePackage = {
+      id: manifest.id,
+      version: manifest.version,
+      group: manifest.id.split(".")[0]!,
+      meta: {},
+      namespaces: [],
+      symbols: new Map(),
+    };
     const indexPath = join(root, entry.name, "index.md");
     if (existsSync(indexPath)) {
       const indexPage = `${entry.name}/index.md`;
       const ast = Markdoc.parse(readFileSync(indexPath, "utf8"));
+      pkg.meta = parseFrontmatter(String(ast.attributes.frontmatter ?? ""));
+      pkg.version ??= pkg.meta.version;
+      pkg.description = pkg.meta.description;
       for (const child of ast.children) {
         if (child.type === "heading" && child.attributes.level === 2) {
           pkg.namespaces.push({ name: astText(child), types: [] });
-        } else if (child.type === "blockquote" && pkg.description === undefined) {
-          pkg.description = astText(child).trim();
         } else if (child.type === "list") {
           const ns = pkg.namespaces.at(-1);
           for (const item of child.children) {
@@ -49,6 +57,25 @@ export function loadSite(root: string): Site {
   }
 
   return { packages, symbols };
+}
+
+/** mdnet frontmatter: one `key: value` per line; values may be JSON-quoted. */
+export function parseFrontmatter(source: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const line of source.split(/\r?\n/)) {
+    const separator = line.indexOf(":");
+    if (separator <= 0) continue;
+    let value = line.slice(separator + 1).trim();
+    if (value.startsWith('"')) {
+      try {
+        value = String(JSON.parse(value));
+      } catch {
+        continue;
+      }
+    }
+    result[line.slice(0, separator).trim()] = value;
+  }
+  return result;
 }
 
 /** All Markdown pages below the docs root: the root index plus everything inside package folders. */

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Mdnet.Loading;
 using Mdnet.Model;
 using Mdnet.Publishing;
 
@@ -55,17 +56,37 @@ public sealed partial class MarkdownWriter
 
     private string PackageIndex(DocPackage package)
     {
+        var meta = package.Metadata;
+        var description = MsBuildProperties.Normalize(meta.Description);
         var sb = new StringBuilder();
-        sb.Append("# ").Append(package.Id);
+        sb.Append(
+            Frontmatter.Write(
+                [
+                    new(PackageFields.Version, package.Version),
+                    new(PackageFields.Title, meta.Title),
+                    new(PackageFields.Description, description),
+                    new(PackageFields.Authors, meta.Authors),
+                    new(PackageFields.Company, meta.Company),
+                    new(PackageFields.Copyright, meta.Copyright),
+                    new(PackageFields.Tags, meta.Tags),
+                    new(PackageFields.License, meta.License),
+                    new(PackageFields.Project, meta.ProjectUrl),
+                    new(PackageFields.Repository, meta.RepositoryUrl),
+                    new(PackageFields.Frameworks, meta.Frameworks is { Count: > 0 } f ? string.Join(", ", f) : null),
+                    new(PackageFields.Types, package.Namespaces.Sum(n => n.Types.Count).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ]
+            )
+        );
+        sb.Append("# ").Append(package.Id).Append("\n\n`package`");
         if (package.Version is not null)
         {
-            sb.Append(' ').Append(package.Version);
+            sb.Append(" `").Append(package.Version).Append('`');
         }
 
         sb.Append("\n\n");
-        if (!string.IsNullOrWhiteSpace(package.Description))
+        if (description is not null)
         {
-            sb.Append("> ").Append(Regex.Replace(package.Description.Trim(), @"\s+", " ")).Append("\n\n");
+            sb.Append(description).Append("\n\n");
         }
 
         var page = $"{package.Id}/index.md";

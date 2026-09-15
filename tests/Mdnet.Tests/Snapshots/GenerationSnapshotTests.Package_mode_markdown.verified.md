@@ -591,9 +591,21 @@ Formats the amount for display.
 
 {% /member %}
 ===== Sample.Lib/index.md =====
-# Sample.Lib 1.2.3
+---
+version: 1.2.3
+description: Sample library used to test mdnet.
+authors: mdnet contributors
+tags: sample, docs
+license: MIT
+repository: https://github.com/example/mdnet
+frameworks: net10.0
+types: 8
+---
+# Sample.Lib
 
-> Sample library used to test mdnet.
+`package` `1.2.3`
+
+Sample library used to test mdnet.
 
 ## Core.Data
 
@@ -622,10 +634,12 @@ Formats the amount for display.
     "Core.Data/DbContext.md": "f20f134ce76db34a51fa710408fb0f827c0708347539d8a95e15ee6e921758e6",
     "Core.Data/Money.md": "9c487680333cf4df11759137dfaadc589932f3f8909b6acb29ede7aad9e6a268",
     "Core.Data/MoneyExtensions.md": "dc95b4284b21f23efcf10909c80f3ac62310db908a8846c7568fb0c36bd4fdc5",
-    "index.md": "f20cbecd71b2b3a9bcddd14b45cf72b2f0d0a6bf8d92e7b39872db4cc5fb55ca"
+    "index.md": "e0a9a44b1771ca6c424df457a5b4aa784981139e72dc30bc5f90df2e8db02a92"
   }
 }
 ===== index.md =====
 # API documentation
 
-* [Sample.Lib 1.2.3](Sample.Lib/index.md): Sample library used to test mdnet.
+1 package · 8 types
+
+* [Sample.Lib](Sample.Lib/index.md) `1.2.3`: Sample library used to test mdnet.

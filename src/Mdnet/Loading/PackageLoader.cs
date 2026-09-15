@@ -107,7 +107,7 @@ public sealed class PackageLoader(Log log)
             var parts = documentedReferences
                 .Select(r => compilation.GetAssemblyOrModuleSymbol(r) as IAssemblySymbol)
                 .OfType<IAssemblySymbol>()
-                .Select(assembly => extractor.Extract(assembly, package.Id, package.Version, null))
+                .Select(assembly => extractor.Extract(assembly, package.Id, package.Version, PackageMetadata.Empty))
                 .ToList();
             var namespaces = parts.SelectMany(p => p.Namespaces)
                 .GroupBy(n => n.Name, StringComparer.Ordinal)
@@ -120,7 +120,7 @@ public sealed class PackageLoader(Log log)
                 continue;
             }
 
-            result.Add(new DocPackage(package.Id, package.Version, NuspecDescription(package), namespaces));
+            result.Add(new DocPackage(package.Id, package.Version, NuspecMetadata(package), namespaces));
         }
 
         return result;
@@ -151,21 +151,47 @@ public sealed class PackageLoader(Log log)
             ?? Directory.EnumerateFiles(package.Directory, name, SearchOption.AllDirectories).FirstOrDefault();
     }
 
-    private static string? NuspecDescription(RestoredPackage package)
+    private static PackageMetadata NuspecMetadata(RestoredPackage package)
     {
-        var nuspec = package.Directory is null ? null : Directory.EnumerateFiles(package.Directory, "*.nuspec").FirstOrDefault();
+        if (package.Directory is null)
+        {
+            return PackageMetadata.Empty;
+        }
+
+        var libs = Path.Combine(package.Directory, "lib");
+        var frameworks = Directory.Exists(libs)
+            ? Directory.EnumerateDirectories(libs).Select(Path.GetFileName).OfType<string>().OrderByDescending(AssetsFile.FrameworkRank).ToList()
+            : [];
+
+        var nuspec = Directory.EnumerateFiles(package.Directory, "*.nuspec").FirstOrDefault();
         if (nuspec is null)
         {
-            return null;
+            return new PackageMetadata(Frameworks: frameworks);
         }
 
         try
         {
-            return XDocument.Load(nuspec).Descendants().FirstOrDefault(e => e.Name.LocalName == "description")?.Value.Trim();
+            var metadata = XDocument.Load(nuspec).Descendants().FirstOrDefault(e => e.Name.LocalName == "metadata");
+            XElement? Element(string name) => metadata?.Elements().FirstOrDefault(e => e.Name.LocalName == name);
+            string? Value(string name) => MsBuildProperties.Normalize(Element(name)?.Value);
+
+            var license = Element("license");
+            var id = Value("id");
+            return new PackageMetadata(
+                Title: Value("title") is { } title && title != id ? title : null,
+                Description: Value("description"),
+                Authors: Value("authors") is { } authors && authors != id ? authors : null,
+                Copyright: Value("copyright"),
+                Tags: MsBuildProperties.NormalizeTags(Value("tags")),
+                License: license?.Attribute("type")?.Value == "expression" ? MsBuildProperties.Normalize(license.Value) : null,
+                ProjectUrl: Value("projectUrl"),
+                RepositoryUrl: MsBuildProperties.Normalize(Element("repository")?.Attribute("url")?.Value),
+                Frameworks: frameworks
+            );
         }
         catch (System.Xml.XmlException)
         {
-            return null;
+            return new PackageMetadata(Frameworks: frameworks);
         }
     }
 }

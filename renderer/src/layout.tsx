@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { pageHref, slug, usePage, type NavNamespace } from "./context";
+import { groupPackages, pageHref, slug, usePage, type NavNamespace } from "./context";
 
 function BookIcon({ className }: { className: string }) {
   return (
@@ -49,16 +49,32 @@ function Navigation() {
           ))}
         </>
       ) : (
-        <ul className="space-y-1">
-          {site.packages.map((p) => (
-            <li key={p.id}>
-              <a href={pageHref(page.path, `${p.id}/index.md`)} className="block py-1 text-zinc-600 hover:text-zinc-900">
-                {p.id}
-                {p.version && <span className="ml-2 font-mono text-[11px] text-zinc-400">{p.version}</span>}
-              </a>
-            </li>
+        <>
+          <input
+            data-filter=""
+            type="search"
+            placeholder="Filter packages"
+            className="w-full mb-6 px-2.5 py-1.5 rounded-md bg-white ring-1 ring-zinc-200 placeholder:text-zinc-400 text-zinc-800 focus:outline-none focus:ring-zinc-400"
+          />
+          {groupPackages(site.packages).map((group) => (
+            <div key={group.name} data-group="" className="mb-6">
+              <div className="px-1 mb-1.5 text-[11px] font-mono font-medium uppercase tracking-wider text-zinc-400">{group.name}</div>
+              <ul>
+                {group.packages.map((p) => (
+                  <li key={p.id} data-item={p.id.toLowerCase()}>
+                    <a
+                      href={pageHref(page.path, `${p.id}/index.md`)}
+                      className="flex items-baseline justify-between gap-2 px-2 py-1 rounded-md font-mono text-[12.5px] text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/60"
+                    >
+                      <span className="truncate">{p.id}</span>
+                      {p.version && <span className="shrink-0 text-[11px] text-zinc-400">{p.version}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </>
       )}
       <script dangerouslySetInnerHTML={{ __html: filterScript }} />
     </nav>

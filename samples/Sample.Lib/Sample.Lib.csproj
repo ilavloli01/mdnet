@@ -4,5 +4,9 @@
     <PackageId>Sample.Lib</PackageId>
     <Version>1.2.3</Version>
     <Description>Sample library used to test mdnet.</Description>
+    <Authors>mdnet contributors</Authors>
+    <PackageTags>sample;docs</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/example/mdnet</RepositoryUrl>
   </PropertyGroup>
 </Project>

@@ -33,6 +33,7 @@ public sealed partial class SourceLoader(Log log)
             return [];
         }
 
+        var projectInfos = MsBuildProperties.ReadAsync(projectFiles, log, cancellationToken);
         using var workspace = MSBuildWorkspace.Create();
         workspace.RegisterWorkspaceFailedHandler(e => log.Verbose($"workspace: {e.Diagnostic.Message}"));
 
@@ -47,6 +48,7 @@ public sealed partial class SourceLoader(Log log)
             await workspace.OpenProjectAsync(file, cancellationToken: cancellationToken);
         }
 
+        var infos = await projectInfos;
         var packages = new List<DocPackage>();
         foreach (var file in projectFiles)
         {
@@ -72,11 +74,13 @@ public sealed partial class SourceLoader(Log log)
                 log.Warn($"{project.Name}: {errors} compilation error(s); signatures may be incomplete (run dotnet restore/build first).");
             }
 
-            var info = ProjectInfoFromFile(file, compilation.Assembly);
-            var package = new ApiExtractor(compilation, visibility).Extract(compilation.Assembly, info.Id, info.Version, info.Description);
+            var info = infos[file];
+            var id = info.Id ?? compilation.Assembly.Name;
+            var version = info.Version ?? FormatVersion(compilation.Assembly.Identity.Version);
+            var package = new ApiExtractor(compilation, visibility).Extract(compilation.Assembly, id, version, info.Metadata);
             if (package.Namespaces.Count == 0)
             {
-                log.Verbose($"Skipping {info.Id}: no documented types.");
+                log.Verbose($"Skipping {id}: no documented types.");
                 continue;
             }
 
@@ -122,20 +126,6 @@ public sealed partial class SourceLoader(Log log)
         {
             return false;
         }
-    }
-
-    private static (string Id, string? Version, string? Description) ProjectInfoFromFile(string file, IAssemblySymbol assembly)
-    {
-        string? Property(XDocument doc, string name) =>
-            doc.Descendants().LastOrDefault(e => e.Name.LocalName == name && e.Parent?.Name.LocalName == "PropertyGroup")?.Value.Trim() is { Length: > 0 } v
-            && !v.Contains("$(", StringComparison.Ordinal)
-                ? v
-                : null;
-
-        var doc = XDocument.Load(file);
-        var id = Property(doc, "PackageId") ?? assembly.Name;
-        var version = Property(doc, "PackageVersion") ?? Property(doc, "Version") ?? Property(doc, "VersionPrefix") ?? FormatVersion(assembly.Identity.Version);
-        return (id, version, Property(doc, "Description"));
     }
 
     private static string? FormatVersion(Version version) =>
