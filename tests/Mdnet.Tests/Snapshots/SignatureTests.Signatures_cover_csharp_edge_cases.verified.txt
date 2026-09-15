@@ -1,0 +1,55 @@
+// Handler
+public delegate TResult Handler<in TArg, out TResult>(TArg value)
+    where TResult : allows ref struct;
+
+// IShape
+public interface IShape<in TIn, out TOut>
+TOut Area(TIn input)
+static abstract IShape<TIn, TOut> Create()
+int Sides { get; }
+
+// Sealed
+public sealed class Sealed : Widget<string>
+public override ref readonly string Peek()
+public sealed override void Old()
+
+// Small
+public enum Small : byte
+A = 1
+B = 2
+
+// Span2
+public ref struct Span2
+public int Length { get; }
+
+// Widget
+public abstract class Widget<T>
+    where T : notnull
+public const string Name = "widget\n";
+public required int Size { get; init; }
+public int this[int index] { get; protected set; }
+public abstract ref readonly T Peek()
+public static bool TryParse(
+    string? text,
+    out int value,
+    ref int cursor,
+    in DateTime at,
+    params string[] tags
+)
+public void Defaults(
+    DayOfWeek day = DayOfWeek.Friday,
+    double ratio = 0.5,
+    char c = 'x',
+    int? maybe = null,
+    object? o = null
+)
+public void @event(int @class)
+[Obsolete("Use Other")]
+public virtual void Old()
+public TOut Map<TOut, TState>(Func<T, TState, TOut> map, TState state)
+    where TOut : class?, new()
+    where TState : struct
+public static explicit operator string(Widget<T> w)
+public static Widget<T> operator checked -(Widget<T> w)
+public static Widget<T> operator -(Widget<T> w)
+protected internal int Shared;

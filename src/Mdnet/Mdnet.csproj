@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Mdnet</RootNamespace>
+    <AssemblyName>mdnet</AssemblyName>
+    <RollForward>Major</RollForward>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>mdnet</ToolCommandName>
+    <PackageId>mdnet</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Roman Jámbor</Authors>
+    <Description>Generates AI-friendly, signature-first API documentation (Markdown + static HTML via Markdoc) for .NET libraries from source or NuGet packages, and syncs published docs.</Description>
+    <PackageTags>documentation;markdown;markdoc;roslyn;api-docs;ai;llm;dotnet-tool</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\nupkg</PackageOutputPath>
+    <RendererDist>$(MSBuildThisFileDirectory)..\..\renderer\dist</RendererDist>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
+    <None Include="$(RendererDist)\**\*" LinkBase="renderer" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mdnet.Tests" />
+  </ItemGroup>
+
+  <Target Name="EnsureRendererBundle" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('$(RendererDist)\render.mjs')" Text="renderer/dist/render.mjs is missing. Run: cd renderer &amp;&amp; bun install &amp;&amp; bun run build" />
+  </Target>
+</Project>

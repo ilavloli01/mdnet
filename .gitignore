@@ -1,0 +1,12 @@
+bin/
+obj/
+node_modules/
+renderer/dist/
+nupkg/
+out/
+.mdnet/
+*.received.*
+.idea/
+.vs/
+TestResults/
+renderer/build/

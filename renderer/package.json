@@ -1,0 +1,27 @@
+{
+  "name": "mdnet-renderer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i src/site.css -o build/site.css --minify",
+    "build:js": "bun build src/main.tsx --target=node --format=esm --minify --outfile dist/render.mjs",
+    "build": "bun run build:css && bun run build:js",
+    "typecheck": "tsc --noEmit",
+    "render": "bun src/main.tsx"
+  },
+  "dependencies": {
+    "@markdoc/markdoc": "0.5.9",
+    "@shikijs/langs": "4.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "shiki": "4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "@types/node": "26.5.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}
