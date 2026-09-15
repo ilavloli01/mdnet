@@ -84,10 +84,107 @@ public sealed partial class SourceLoader(Log log)
                 continue;
             }
 
-            packages.Add(package);
+            var rootNamespace = info.RootNamespace ?? compilation.AssemblyName;
+            packages.Add(
+                package with
+                {
+                    RootNamespace = rootNamespace,
+                    Readme = ReadReadme(Path.GetDirectoryName(file)!),
+                    NamespaceReadmes = NamespaceReadmes(package, compilation, Path.GetDirectoryName(file)!, rootNamespace),
+                }
+            );
         }
 
         return packages;
+    }
+
+    private static string? ReadReadme(string directory)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return null;
+        }
+
+        var readme = Directory.EnumerateFiles(directory, "*.md").FirstOrDefault(f => Path.GetFileName(f).Equals("README.md", StringComparison.OrdinalIgnoreCase));
+        return readme is null ? null : File.ReadAllText(readme);
+    }
+
+    /// <summary>
+    /// README.md files in namespace folders. A namespace below the root namespace maps to the matching sub folder
+    /// (<c>Contoso.Domain.Entities</c> → <c>Domain/Entities</c>), which also covers feature namespaces without types;
+    /// other namespaces use the common folder of their types' source files.
+    /// </summary>
+    private static Dictionary<string, string> NamespaceReadmes(DocPackage package, Compilation compilation, string projectDirectory, string? rootNamespace)
+    {
+        var projectRoot = Path.GetFullPath(projectDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var folders = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var ns in package.Namespaces)
+        {
+            if (rootNamespace is { Length: > 0 } && ns.Name.StartsWith(rootNamespace + ".", StringComparison.Ordinal))
+            {
+                // Every ancestor below the root namespace, so features without types of their own get their README too.
+                var relative = ns.Name[(rootNamespace.Length + 1)..].Split('.');
+                for (var depth = 1; depth <= relative.Length; depth++)
+                {
+                    folders.TryAdd($"{rootNamespace}.{string.Join('.', relative[..depth])}", Path.Combine([projectDirectory, .. relative[..depth]]));
+                }
+
+                continue;
+            }
+
+            if (rootNamespace == ns.Name)
+            {
+                continue;
+            }
+
+            var sourceDirectories = ns.Types
+                .SelectMany(t => DocumentationCommentId.GetFirstSymbolForDeclarationId(t.DocId, compilation)?.Locations ?? [])
+                .Where(l => l.IsInSource && l.SourceTree?.FilePath is { Length: > 0 })
+                .Select(l => Path.GetDirectoryName(Path.GetFullPath(l.SourceTree!.FilePath))!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (CommonDirectory(sourceDirectories) is { } common
+                && (common + Path.DirectorySeparatorChar).StartsWith(projectRoot, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(common + Path.DirectorySeparatorChar, projectRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                folders.TryAdd(ns.Name, common);
+            }
+        }
+
+        var readmes = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (ns, folder) in folders)
+        {
+            if (ReadReadme(folder) is { } readme)
+            {
+                readmes[ns] = readme;
+            }
+        }
+
+        return readmes;
+    }
+
+    private static string? CommonDirectory(IReadOnlyList<string> directories)
+    {
+        if (directories.Count == 0)
+        {
+            return null;
+        }
+
+        var common = directories[0].Split(Path.DirectorySeparatorChar);
+        var length = common.Length;
+        foreach (var parts in directories.Skip(1).Select(d => d.Split(Path.DirectorySeparatorChar)))
+        {
+            var i = 0;
+            while (i < length && i < parts.Length && string.Equals(parts[i], common[i], StringComparison.OrdinalIgnoreCase))
+            {
+                i++;
+            }
+
+            length = i;
+        }
+
+        return length == 0 ? null : string.Join(Path.DirectorySeparatorChar, common[..length]);
     }
 
     private static bool SamePath(string? a, string b) =>

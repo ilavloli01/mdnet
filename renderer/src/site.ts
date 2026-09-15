@@ -25,7 +25,7 @@ export function loadSite(root: string): Site {
       version: manifest.version,
       group: manifest.id.split(".")[0]!,
       meta: {},
-      namespaces: [],
+      features: [],
       symbols: new Map(),
     };
     const indexPath = join(root, entry.name, "index.md");
@@ -36,10 +36,13 @@ export function loadSite(root: string): Site {
       pkg.version ??= pkg.meta.version;
       pkg.description = pkg.meta.description;
       for (const child of ast.children) {
+        // "## Feature" sections hold the feature's own types, then "### Nested.Namespace" groups.
         if (child.type === "heading" && child.attributes.level === 2) {
-          pkg.namespaces.push({ name: astText(child), types: [] });
+          pkg.features.push({ title: astText(child), namespaces: [{ types: [] }] });
+        } else if (child.type === "heading" && child.attributes.level === 3) {
+          pkg.features.at(-1)?.namespaces.push({ name: astText(child), types: [] });
         } else if (child.type === "list") {
-          const ns = pkg.namespaces.at(-1);
+          const ns = pkg.features.at(-1)?.namespaces.at(-1);
           for (const item of child.children) {
             const link = [...item.walk()].find((n) => n.type === "link");
             if (!ns || !link) continue;

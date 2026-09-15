@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { groupPackages, pageHref, slug, usePage, type NavNamespace } from "./context";
+import { groupPackages, pageHref, slug, usePage, type NavFeature, type NavNamespace } from "./context";
 
 function BookIcon({ className }: { className: string }) {
   return (
@@ -44,8 +44,8 @@ function Navigation() {
             placeholder="Filter types"
             className="w-full mb-6 px-2.5 py-1.5 rounded-md bg-white ring-1 ring-zinc-200 placeholder:text-zinc-400 text-zinc-800 focus:outline-none focus:ring-zinc-400"
           />
-          {pkg.namespaces.map((ns) => (
-            <NamespaceGroup key={ns.name} ns={ns} />
+          {pkg.features.map((feature) => (
+            <FeatureGroup key={feature.title} feature={feature} />
           ))}
         </>
       ) : (
@@ -81,11 +81,26 @@ function Navigation() {
   );
 }
 
-function NamespaceGroup({ ns }: { ns: NavNamespace }) {
-  const page = usePage();
+function FeatureGroup({ feature }: { feature: NavFeature }) {
   return (
     <div data-group="" className="mb-6">
-      <div className="px-1 mb-1.5 text-[11px] font-mono font-medium uppercase tracking-wider text-zinc-400 break-all">{ns.name}</div>
+      <div className="px-1 mb-1.5 text-[11px] font-mono font-medium uppercase tracking-wider text-zinc-400 break-all">{feature.title}</div>
+      {feature.namespaces.map((ns, i) => (
+        <NamespaceGroup key={ns.name ?? i} ns={ns} feature={feature} />
+      ))}
+    </div>
+  );
+}
+
+function NamespaceGroup({ ns, feature }: { ns: NavNamespace; feature: NavFeature }) {
+  const page = usePage();
+  if (ns.types.length === 0) return null;
+  const marker = ns.name?.lastIndexOf(`${feature.title}.`) ?? -1;
+  const label = ns.name && (marker >= 0 ? ns.name.slice(marker + feature.title.length + 1) : ns.name);
+
+  return (
+    <div data-group="" className={label ? "mt-2 mb-1 ml-2 pl-2 border-l border-zinc-200/70" : ""}>
+      {label && <div className="px-1 mt-2.5 mb-1 font-mono text-[11.5px] text-zinc-400 break-all">{label}</div>}
       <ul>
         {ns.types.map((type) => {
           const current = type.path === page.path;

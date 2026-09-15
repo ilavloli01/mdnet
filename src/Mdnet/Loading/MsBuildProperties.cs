@@ -6,7 +6,7 @@ using Mdnet.Model;
 namespace Mdnet.Loading;
 
 /// <summary>Package identity and metadata of a project.</summary>
-public sealed record ProjectPackageInfo(string? Id, string? Version, PackageMetadata Metadata);
+public sealed record ProjectPackageInfo(string? Id, string? Version, PackageMetadata Metadata, string? RootNamespace = null);
 
 /// <summary>
 /// Reads package properties from the evaluated project (<c>dotnet msbuild -getProperty</c>), so values inherited from
@@ -19,6 +19,7 @@ public static partial class MsBuildProperties
         "PackageId",
         "Version",
         "AssemblyName",
+        "RootNamespace",
         "Title",
         "Description",
         "Authors",
@@ -129,7 +130,7 @@ public static partial class MsBuildProperties
             RepositoryUrl: Value("RepositoryUrl"),
             Frameworks: frameworks
         );
-        return new ProjectPackageInfo(id, NotDefault(Value("Version"), "1.0.0"), metadata);
+        return new ProjectPackageInfo(id, NotDefault(Value("Version"), "1.0.0"), metadata, Value("RootNamespace") ?? assemblyName);
     }
 
     /// <summary>Tags as <c>a, b</c>: projects separate them with <c>;</c>, nuspecs with spaces.</summary>

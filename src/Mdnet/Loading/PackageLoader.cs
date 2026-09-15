@@ -120,7 +120,7 @@ public sealed class PackageLoader(Log log)
                 continue;
             }
 
-            result.Add(new DocPackage(package.Id, package.Version, NuspecMetadata(package), namespaces));
+            result.Add(new DocPackage(package.Id, package.Version, NuspecMetadata(package), namespaces) { Readme = NuspecReadme(package) });
         }
 
         return result;
@@ -149,6 +149,32 @@ public sealed class PackageLoader(Log log)
         var name = Path.GetFileNameWithoutExtension(dll) + ".xml";
         return package.RuntimeAssets.Select(r => Path.Combine(Path.GetDirectoryName(r)!, name)).FirstOrDefault(File.Exists)
             ?? Directory.EnumerateFiles(package.Directory, name, SearchOption.AllDirectories).FirstOrDefault();
+    }
+
+    /// <summary>The Markdown file named by the nuspec <c>&lt;readme&gt;</c> element.</summary>
+    private static string? NuspecReadme(RestoredPackage package)
+    {
+        var nuspec = package.Directory is null ? null : Directory.EnumerateFiles(package.Directory, "*.nuspec").FirstOrDefault();
+        if (nuspec is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var path = XDocument.Load(nuspec).Descendants().FirstOrDefault(e => e.Name.LocalName == "readme")?.Value.Trim().Replace('\\', '/');
+            if (string.IsNullOrEmpty(path) || path.Split('/').Contains(".."))
+            {
+                return null;
+            }
+
+            var file = Path.Combine(package.Directory!, path);
+            return File.Exists(file) ? File.ReadAllText(file) : null;
+        }
+        catch (System.Xml.XmlException)
+        {
+            return null;
+        }
     }
 
     private static PackageMetadata NuspecMetadata(RestoredPackage package)

@@ -7,8 +7,15 @@ export interface NavType {
 }
 
 export interface NavNamespace {
-  name: string;
+  /** Full namespace for nested namespaces; undefined for the feature's own types. */
+  name?: string;
   types: NavType[];
+}
+
+/** A package feature (root namespace) with its own types first, then nested namespaces. */
+export interface NavFeature {
+  title: string;
+  namespaces: NavNamespace[];
 }
 
 export interface SitePackage {
@@ -19,7 +26,7 @@ export interface SitePackage {
   description?: string;
   /** Frontmatter of the package index.md (authors, license, repository, frameworks, types, …). */
   meta: Record<string, string | undefined>;
-  namespaces: NavNamespace[];
+  features: NavFeature[];
   /** Simple type name → page path within this package. */
   symbols: Map<string, string>;
 }

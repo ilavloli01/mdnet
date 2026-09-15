@@ -58,13 +58,15 @@ public sealed partial class MarkdownWriter
     {
         var meta = package.Metadata;
         var description = MsBuildProperties.Normalize(meta.Description);
+        // Lists need a brief; without a <Description> the README's first paragraph stands in (the page shows the README itself).
+        var brief = description ?? (package.Readme is null ? null : ReadmeImporter.FirstParagraph(ReadmeImporter.Import(package.Readme, 3, package.Id) ?? ""));
         var sb = new StringBuilder();
         sb.Append(
             Frontmatter.Write(
                 [
                     new(PackageFields.Version, package.Version),
                     new(PackageFields.Title, meta.Title),
-                    new(PackageFields.Description, description),
+                    new(PackageFields.Description, brief),
                     new(PackageFields.Authors, meta.Authors),
                     new(PackageFields.Company, meta.Company),
                     new(PackageFields.Copyright, meta.Copyright),
@@ -89,25 +91,47 @@ public sealed partial class MarkdownWriter
             sb.Append(description).Append("\n\n");
         }
 
+        AppendReadme(sb, package.Readme, 3, package.Id, package.RootNamespace ?? package.Id);
+
         var page = $"{package.Id}/index.md";
-        foreach (var ns in package.Namespaces)
+        var namespaces = package.Namespaces.ToDictionary(n => n.Name, StringComparer.Ordinal);
+        foreach (var feature in NamespaceTree.Build(package.Namespaces.Select(n => n.Name).ToList(), package.RootNamespace))
         {
-            sb.Append("## ").Append(ns.Name).Append("\n\n");
-            foreach (var type in ns.Types)
+            sb.Append("## ").Append(feature.Title).Append("\n\n");
+            AppendReadme(sb, package.NamespaceReadmes.GetValueOrDefault(feature.Name), 4, feature.Name, feature.Title);
+            foreach (var name in feature.Namespaces)
             {
-                sb.Append("* [").Append(type.Name).Append("](").Append(type.Path).Append(')');
-                if (FirstSentence(type.Doc.Summary) is { } summary)
+                if (name != feature.Name)
                 {
-                    sb.Append(": ").Append(ResolveLinks(summary, page));
+                    sb.Append("### ").Append(name).Append("\n\n");
+                    AppendReadme(sb, package.NamespaceReadmes.GetValueOrDefault(name), 4, name, name[(name.LastIndexOf('.') + 1)..]);
+                }
+
+                foreach (var type in namespaces[name].Types)
+                {
+                    sb.Append("* [").Append(type.Name).Append("](").Append(type.Path).Append(')');
+                    if (FirstSentence(type.Doc.Summary) is { } summary)
+                    {
+                        sb.Append(": ").Append(ResolveLinks(summary, page));
+                    }
+
+                    sb.Append('\n');
                 }
 
                 sb.Append('\n');
             }
-
-            sb.Append('\n');
         }
 
-        return sb.ToString().TrimEnd() + "\n";
+        return Regex.Replace(sb.ToString(), @"\n{3,}", "\n\n").TrimEnd() + "\n";
+    }
+
+    /// <summary>README content inside a <c>{% readme %}</c> tag, so its headings and lists stay out of the page structure.</summary>
+    private static void AppendReadme(StringBuilder sb, string? readme, int minHeadingLevel, params string[] titles)
+    {
+        if (readme is not null && ReadmeImporter.Import(readme, minHeadingLevel, titles) is { } content)
+        {
+            sb.Append("{% readme %}\n").Append(content).Append("\n{% /readme %}\n\n");
+        }
     }
 
     public string TypePage(TypeDoc type, string page)

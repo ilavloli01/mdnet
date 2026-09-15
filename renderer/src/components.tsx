@@ -1,4 +1,4 @@
-import { Children, isValidElement, type ReactNode } from "react";
+import { Children, createContext, isValidElement, useContext, type ReactNode } from "react";
 import { Code, type Wrap } from "./highlight";
 import { frameworksOf, groupPackages, pageHref, rewriteHref, slug, usePage, type SitePackage } from "./context";
 
@@ -22,7 +22,10 @@ export function Header({ title, badges, declaration, children }: WithChildren<{ 
   const generics = genericStart > 0 ? title.slice(genericStart) : "";
   const [kind, ...modifiers] = badges;
   const body = Children.toArray(children);
-  const hasBody = body.length > 0;
+  // The brief description and package facts come first; an embedded README follows as the detailed description.
+  const readmeStart = body.findIndex((c) => isValidElement(c) && c.type === Readme);
+  const lead = readmeStart < 0 ? body : body.slice(0, readmeStart);
+  const readme = readmeStart < 0 ? [] : body.slice(readmeStart);
 
   return (
     <>
@@ -54,8 +57,9 @@ export function Header({ title, badges, declaration, children }: WithChildren<{ 
             </code>
           </div>
         )}
-        {hasBody && <div className="space-y-5 max-w-2xl [&>p:first-child]:text-[16px] [&>p:first-child]:text-zinc-700">{body}</div>}
+        {lead.length > 0 && <div className="space-y-5 max-w-2xl [&>p:first-child]:text-[16px] [&>p:first-child]:text-zinc-700">{lead}</div>}
         <PackageFacts />
+        {readme.length > 0 && <div className="mt-10 space-y-5">{readme}</div>}
       </header>
       <div className="h-px w-full bg-zinc-100 mb-14" />
     </>
@@ -284,15 +288,51 @@ export function Paragraph({ tone, children }: WithChildren<{ tone?: "muted" }>) 
   return <p className={tone === "muted" ? "" : "text-zinc-800 text-[15px] leading-relaxed"}>{children}</p>;
 }
 
-export function Heading({ level, children }: WithChildren<{ level: number }>) {
+const InReadme = createContext(false);
+
+export function Readme({ children }: WithChildren) {
+  return (
+    <InReadme.Provider value={true}>
+      <div className="max-w-2xl space-y-4 text-zinc-600 text-[15px] leading-relaxed [&_p]:text-zinc-600 [&_p]:text-[15px] [&>*:first-child]:mt-0">
+        {children}
+      </div>
+    </InReadme.Provider>
+  );
+}
+
+export function Heading({ level, id, children }: WithChildren<{ level: number; id?: string }>) {
+  const inReadme = useContext(InReadme);
+  const { pkg, path } = usePage();
+  const text = Children.toArray(children).filter((c) => typeof c === "string").join("");
+
+  // "### Contoso.Domain.Entities" on a package index: a namespace nested in the section's feature.
+  if (level === 3 && !inReadme && pkg && path === `${pkg.id}/index.md`) {
+    const lastDot = text.lastIndexOf(".");
+    return (
+      <h3 id={id} className="scroll-mt-24 pt-6 mt-4 mb-1 border-t border-zinc-100 font-mono text-[14px] font-semibold text-zinc-900 [overflow-wrap:anywhere]">
+        <a href={`#${id}`} className="hover:text-teal-700">
+          {lastDot > 0 && <span className="font-medium text-zinc-400">{text.slice(0, lastDot + 1)}</span>}
+          {lastDot > 0 ? text.slice(lastDot + 1) : children}
+        </a>
+      </h3>
+    );
+  }
+
   const Tag = `h${Math.min(Math.max(level, 1), 6)}` as "h3";
-  return <Tag className="font-heading font-semibold text-zinc-900 tracking-tight mt-8 mb-3">{children}</Tag>;
+  const size = inReadme ? (level <= 3 ? "text-lg" : level === 4 ? "text-base" : "text-[15px]") : "";
+  return (
+    <Tag id={id} className={`scroll-mt-24 font-heading font-semibold text-zinc-900 tracking-tight mt-8 mb-3 ${size}`}>
+      {children}
+    </Tag>
+  );
 }
 
 export function CodeBlock({ content, language }: { content: string; language?: string }) {
+  // README diagrams and snippets read better denser than signatures.
+  const dense = useContext(InReadme);
   return (
     <div className={`${codeBox} p-5`}>
-      <code className={codeText}>
+      <code className={dense ? codeText.replace("leading-loose", "leading-relaxed") : codeText}>
         <Code code={content} language={language} />
       </code>
     </div>
@@ -363,6 +403,7 @@ export const components = {
   Remarks,
   Paragraph,
   Heading,
+  Readme,
   CodeBlock,
   InlineCode,
   DocLink,

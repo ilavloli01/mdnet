@@ -607,13 +607,26 @@ types: 8
 
 Sample library used to test mdnet.
 
+{% readme %}
+A tiny data-access library used to exercise every part of mdnet.
+
+### Getting started
+
+Register the context and resolve repositories. See the design notes or the [Markdoc docs](https://markdoc.dev).
+
+```csharp
+# not a heading
+var repository = new EntityFrameworkRepository<Order>(context);
+```
+{% /readme %}
+
 ## Core.Data
 
 * [DbContext](Core.Data/DbContext.md): A minimal unit of work that tracks entity changes.
 * [Money](Core.Data/Money.md): An immutable amount of money in a specific currency.
 * [MoneyExtensions](Core.Data/MoneyExtensions.md): Extension methods for [`Money`](Core.Data/Money.md).
 
-## Core.Data.Repositories
+## Repositories
 
 * [ChangeKind](Core.Data.Repositories/ChangeKind.md): Describes how an entity changed.
 * [EntityChangedEventArgs<TEntity>](Core.Data.Repositories/EntityChangedEventArgs-1.md): Provides data for entity lifecycle events.
@@ -634,7 +647,7 @@ Sample library used to test mdnet.
     "Core.Data/DbContext.md": "f20f134ce76db34a51fa710408fb0f827c0708347539d8a95e15ee6e921758e6",
     "Core.Data/Money.md": "9c487680333cf4df11759137dfaadc589932f3f8909b6acb29ede7aad9e6a268",
     "Core.Data/MoneyExtensions.md": "dc95b4284b21f23efcf10909c80f3ac62310db908a8846c7568fb0c36bd4fdc5",
-    "index.md": "e0a9a44b1771ca6c424df457a5b4aa784981139e72dc30bc5f90df2e8db02a92"
+    "index.md": "c2698d200f3f0cd8220bc11ebef7e6ca53208c9cd34945af08fdef9282834cb9"
   }
 }
 ===== index.md =====

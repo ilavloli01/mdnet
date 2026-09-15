@@ -1,7 +1,17 @@
 namespace Mdnet.Model;
 
 /// <summary>One documented unit: a project (source mode) or a NuGet package (package mode).</summary>
-public sealed record DocPackage(string Id, string? Version, PackageMetadata Metadata, IReadOnlyList<NamespaceDoc> Namespaces);
+public sealed record DocPackage(string Id, string? Version, PackageMetadata Metadata, IReadOnlyList<NamespaceDoc> Namespaces)
+{
+    /// <summary>The project's root namespace (source mode); namespaces below it form the package's features.</summary>
+    public string? RootNamespace { get; init; }
+
+    /// <summary>Raw Markdown of the project or package README: the detailed package description.</summary>
+    public string? Readme { get; init; }
+
+    /// <summary>Raw Markdown of README files found in namespace folders, by full namespace (also for namespaces without types).</summary>
+    public IReadOnlyDictionary<string, string> NamespaceReadmes { get; init; } = new Dictionary<string, string>();
+}
 
 /// <summary>Package properties from the evaluated project (source mode) or the nuspec (package mode).</summary>
 /// <param name="Frameworks">Target framework monikers, e.g. <c>net10.0</c>.</param>

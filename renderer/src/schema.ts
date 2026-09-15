@@ -132,6 +132,14 @@ const member: Schema = {
   },
 };
 
+/** Embedded README (package or namespace): plain prose, no doc-comment classification. */
+const readme: Schema = {
+  render: "Readme",
+  transform(node, config) {
+    return new Tag("Readme", {}, node.transformChildren(config));
+  },
+};
+
 /**
  * Page structure: header (h1, kind badges, declaration, doc comment) followed by one Section per h2.
  */
@@ -192,7 +200,10 @@ export const config: Config = {
     paragraph: { ...nodes.paragraph, render: "Paragraph" },
     heading: {
       ...nodes.heading,
-      transform: (node, config) => new Tag("Heading", { level: node.attributes.level }, node.transformChildren(config)),
+      transform: (node, config) => {
+        const children = node.transformChildren(config);
+        return new Tag("Heading", { level: node.attributes.level, id: slug(textOf(children)) }, children);
+      },
     },
     fence: {
       ...nodes.fence,
@@ -213,5 +224,5 @@ export const config: Config = {
     em: { ...nodes.em, render: "Em" },
     blockquote: { ...nodes.blockquote, render: "Blockquote" },
   },
-  tags: { member },
+  tags: { member, readme },
 };
